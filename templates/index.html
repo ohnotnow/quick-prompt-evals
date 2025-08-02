@@ -319,6 +319,10 @@
                     <div class="meta-label">Time</div>
                     <div class="meta-value">${result.total_time ? result.total_time.toFixed(2) : '0.00'}s</div>
                 </div>
+                <div class="meta-item">
+                    <div class="meta-label">Prompt</div>
+                    <div class="meta-value">${result.prompt || 'N/A'}</div>
+                </div>
             `;
             document.getElementById('resultMeta').innerHTML = metaHtml;
 

@@ -41,10 +41,15 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     user_prompt = args.user_prompt
+    prompt_key = ""
+    
     if args.user_prompt_file:
         args.user_prompt_file = os.path.expanduser(args.user_prompt_file)
         with open(args.user_prompt_file, "r") as f:
             user_prompt = f.read()
+        prompt_key = os.path.basename(args.user_prompt_file)
+    elif args.user_prompt:
+        prompt_key = args.user_prompt[:30] + ("..." if len(args.user_prompt) > 30 else "")
 
     system_prompt = args.system_prompt
     if args.system_prompt_file:
@@ -62,6 +67,7 @@ if __name__ == "__main__":
                 "response": response,
                 "cost": cost,
                 "total_time": total_time,
+                "prompt": prompt_key,
             })
         except Exception as e:
             print(f"Error with model {model}: {e}")
@@ -70,6 +76,7 @@ if __name__ == "__main__":
                 "response": str(e),
                 "cost": 0,
                 "total_time": 0,
+                "prompt": prompt_key,
             })
             continue
         print(f"Model: {model}")
@@ -87,6 +94,7 @@ if __name__ == "__main__":
         "timestamp": today_timestamp,
         "user_prompt": user_prompt,
         "system_prompt": system_prompt,
+        "prompt": prompt_key,
         "results": results
     }
     
