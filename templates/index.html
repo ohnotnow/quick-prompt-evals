@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Evaluation Results</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            height: 100vh;
+            display: flex;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+            overflow-y: auto;
+            box-shadow: 2px 0 4px rgba(0,0,0,0.1);
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            background: #2563eb;
+            color: white;
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .file-list {
+            padding: 0;
+        }
+
+        .file-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .file-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .file-item.active {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2563eb;
+        }
+
+        .file-name {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .file-meta {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .content-header {
+            background: white;
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .content-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .model-selector {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: white;
+            font-size: 14px;
+            min-width: 200px;
+        }
+
+        .content-body {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .result-viewer {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .result-meta {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .meta-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .meta-value {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .result-content {
+            padding: 20px;
+        }
+
+        .markdown-content {
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .markdown-content h1, .markdown-content h2, .markdown-content h3 {
+            margin-top: 24px;
+            margin-bottom: 12px;
+            color: #2563eb;
+        }
+
+        .markdown-content p {
+            margin-bottom: 12px;
+        }
+
+        .markdown-content code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 13px;
+        }
+
+        .markdown-content pre {
+            background: #f8f8f8;
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 12px 0;
+        }
+
+        .markdown-content pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .no-selection {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            margin-top: 50px;
+        }
+
+        .loading {
+            text-align: center;
+            color: #666;
+            margin-top: 20px;
+        }
+
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            Evaluation Results
+        </div>
+        <div class="file-list" id="fileList">
+            {% if files %}
+                {% for file in files %}
+                <div class="file-item" data-filename="{{ file.filename }}">
+                    <div class="file-name">{{ file.timestamp }}</div>
+                    <div class="file-meta">{{ file.models_count }} models</div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="file-item">
+                    <div class="file-name">No results found</div>
+                    <div class="file-meta">Run main.py to generate results</div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="content-header">
+            <div class="content-title">Select a file to view results</div>
+            <select class="model-selector" id="modelSelector" style="display: none;">
+                <option value="">Select a model...</option>
+            </select>
+        </div>
+        
+        <div class="content-body">
+            <div class="no-selection" id="noSelection">
+                Select a results file from the sidebar to view model outputs
+            </div>
+            <div class="result-viewer" id="resultViewer" style="display: none;">
+                <div class="result-meta" id="resultMeta"></div>
+                <div class="result-content">
+                    <div class="markdown-content" id="resultContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentData = null;
+
+        // Handle file selection
+        document.getElementById('fileList').addEventListener('click', function(e) {
+            const fileItem = e.target.closest('.file-item');
+            if (!fileItem || !fileItem.dataset.filename) return;
+
+            // Update active state
+            document.querySelectorAll('.file-item').forEach(item => item.classList.remove('active'));
+            fileItem.classList.add('active');
+
+            // Load file data
+            loadFile(fileItem.dataset.filename);
+        });
+
+        // Handle model selection
+        document.getElementById('modelSelector').addEventListener('change', function(e) {
+            if (currentData && e.target.value) {
+                displayResult(e.target.value);
+            }
+        });
+
+        async function loadFile(filename) {
+            try {
+                document.getElementById('noSelection').style.display = 'none';
+                document.getElementById('resultViewer').style.display = 'none';
+                document.querySelector('.content-title').textContent = 'Loading...';
+
+                const response = await fetch(`/api/file/${filename}`);
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                currentData = data;
+                populateModelSelector(data.results);
+                document.querySelector('.content-title').textContent = `Results: ${data.timestamp}`;
+                
+            } catch (error) {
+                document.querySelector('.content-title').textContent = 'Error loading file';
+                document.getElementById('resultContent').innerHTML = `<div class="error">Error: ${error.message}</div>`;
+                document.getElementById('resultViewer').style.display = 'block';
+            }
+        }
+
+        function populateModelSelector(results) {
+            const selector = document.getElementById('modelSelector');
+            selector.innerHTML = '<option value="">Select a model...</option>';
+            
+            results.forEach((result, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = result.model;
+                selector.appendChild(option);
+            });
+
+            selector.style.display = 'block';
+        }
+
+        function displayResult(resultIndex) {
+            const result = currentData.results[resultIndex];
+            
+            // Update meta information
+            const metaHtml = `
+                <div class="meta-item">
+                    <div class="meta-label">Model</div>
+                    <div class="meta-value">${result.model}</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Cost</div>
+                    <div class="meta-value">$${result.cost ? result.cost.toFixed(4) : '0.0000'}</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Time</div>
+                    <div class="meta-value">${result.total_time ? result.total_time.toFixed(2) : '0.00'}s</div>
+                </div>
+            `;
+            document.getElementById('resultMeta').innerHTML = metaHtml;
+
+            // Render markdown content
+            const markdownHtml = marked.parse(result.response || 'No response');
+            document.getElementById('resultContent').innerHTML = markdownHtml;
+
+            document.getElementById('resultViewer').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
