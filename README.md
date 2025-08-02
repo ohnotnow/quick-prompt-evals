@@ -6,6 +6,7 @@ A lightweight Python application for running quick evaluations of large language
 - A Flask-based web UI and REST API to browse, filter, and view past results
 - Automatic JSON output files with timestamps and metadata
 
+![Screenshot of the web UI](screenshot.png)
 ---
 
 ## Features
